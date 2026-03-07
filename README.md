@@ -80,19 +80,15 @@ The script reads `ra_bios_tool.conf` at startup. This file must be in the same f
 | `RA_LIVE_DIR` | Your live RetroARCH config directory (the parent of `system/`, `saves/`, etc.). Used in Step 11 and by the Step 13 safety check to prevent accidental deletion of the live directory | `~/.var/app/org.libretro.RetroArch/config/retroarch` |
 | `RA_TESTED_VERSION` | The RetroARCH version this tool was built against. Displayed in the startup warning | `1.22.2` |
 
-### Section 2 — RetroARCH Internal Folder Names
-
-These define the folder names used inside the `retroarch/` staging directory. They are deliberately chosen to match RetroARCH's own directory structure so that `rsync` (Step 11) maps the staging folder directly onto the live config directory.
+### Section 2 — RetroARCH Internal Folder Name
 
 | Variable | Folder name | RetroARCH directory |
 |---|---|---|
 | `RA_BIOS_FOLDER` | `system` | `retroarch/system/` — all firmware and BIOS files |
-| `RA_SAVES_FOLDER` | `saves` | `retroarch/saves/` |
-| `RA_ROMS_FOLDER` | `roms` | `retroarch/roms/` |
 
 **How paths work:** RetroARCH `.info` files store firmware paths relative to the `system/` directory. For example, a `.info` entry with `firmware0_path = "dc/dc_boot.bin"` will be placed at `retroarch/system/dc/dc_boot.bin`, which maps directly to `~/.var/app/org.libretro.RetroArch/config/retroarch/system/dc/dc_boot.bin` in the live installation.
 
-Only change these values if RetroARCH has renamed its internal folder structure.
+Unlike RetroDECK, RetroARCH `.info` files never reference saves or roms paths for firmware — all firmware paths are relative to `system/` only. Only change this value if RetroARCH has renamed its system directory.
 
 ### Section 3 — Tool Output Paths
 
@@ -157,7 +153,7 @@ The script will guide you through each step with prompts. Press `Y` at each conf
 | **1** | Confirm the location of your RetroARCH `.info` firmware files |
 | **2** | Confirm where to save `combined_manifest.json` |
 | **3** | Parse all discovered `.info` files and build `combined_manifest.json` — a unified BIOS database with filenames, MD5 hashes, systems, destination paths, and required status |
-| **4** | BIOS Set Selection — use an existing `ra_bios_set.zip` (skips to Step 8) or build a new one (Steps 5–7) |
+| **4** | BIOS Set Selection — choose `E` to use an existing `ra_bios_set.zip` as-is (skips to Step 8), `A` to add new files to an existing archive (runs Steps 5–7 in append mode), or `C` to create a new archive (Steps 5–7) |
 | **5** | *(Optional)* Download up to 5 BIOS sets from URLs. Requires `wget` or `curl` |
 | **6** | *(Optional)* Scan up to 5 local directories recursively. Supports `.zip`, `.7z`, `.rar`, `.tar`, `.gz`, and more, up to 6 levels deep |
 | **7** | Match found files against the manifest, stage them, and pack into `ra_bios_set.zip` |
@@ -167,6 +163,16 @@ The script will guide you through each step with prompts. Press `Y` at each conf
 | **11** | *(Optional)* Copy the staged files into your live RetroARCH config directory using `rsync` |
 | **12** | *(Optional)* Generate a CSV report summarising every BIOS entry |
 | **13** | *(Optional)* Cleanup |
+
+### Step 4 — BIOS Set Selection
+
+Three options are available:
+
+| Choice | Behaviour |
+|---|---|
+| `E` — Use existing | Uses `ra_bios_set.zip` exactly as it is and skips straight to Step 8. No files are added or changed. |
+| `A` — Add to existing | Runs Steps 5–7 in append mode. New files are added; files already present with a passing hash are protected. |
+| `C` — Create new | Runs Steps 5–7. If a zip already exists, you will be asked whether to append or overwrite before proceeding. |
 
 ### How .info Files Are Parsed (Step 3)
 
@@ -205,11 +211,11 @@ Files not copied into `retroarch/` are reported in three distinct categories:
 
 ### Step 13 — Cleanup
 
-All Y/N choices are collected first. No files are deleted until every question has been answered. Items are presented and executed in this order:
+All Y/N choices are collected first. No files are deleted until every question has been answered. Items are executed in this order:
 
-1. Downloaded files
-2. `retroarch/` staging folder *(safety check: refuses to delete if the path resolves to your live RetroARCH config directory)*
-3. `ra_bios_set.zip` *(if keeping, and hash failures were detected, you will be offered a scrub option to remove only the failed files from the archive)*
+1. `retroarch/` staging folder *(safety check: refuses to delete if the path resolves to your live RetroARCH config directory)*
+2. `ra_bios_set.zip` *(if keeping, and hash failures were detected, you will be offered a scrub option to remove only the failed files from the archive)*
+3. Downloaded files
 4. `combined_manifest.json` *(always last — the scrub above depends on it)*
 
 ---
