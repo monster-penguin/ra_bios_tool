@@ -199,22 +199,30 @@ This ensures a good file already in your archive can never be accidentally overw
 
 Before scanning, all previously recorded `actual_md5` values are cleared. This ensures results from a prior run never persist for files that have since been removed from the archive.
 
-### Step 9 — Skip Categories
+### Step 9 — Copy and Skip Categories
 
-Files not copied into `retroarch/` are reported in three distinct categories:
+Files copied into `retroarch/` are reported in two categories:
+
+| Category | Meaning |
+|---|---|
+| Copied (verified) | File found in archive and MD5 matched the expected hash from the RetroARCH `.info` files |
+| Copied (unverified) | File found in archive and filename matched the manifest, but RetroARCH has no expected MD5 to verify against. Most likely valid — copied by default so nothing is withheld unnecessarily. If RetroARCH later publishes an expected MD5 for this file, re-running the tool will verify it automatically |
+
+Files not copied into `retroarch/` are reported in two skip categories:
 
 | Category | Meaning |
 |---|---|
 | Hash mismatch | File found in archive but MD5 does not match expected (wrong version or corrupt) |
-| No expected MD5 | File found but the `.info` files contain no hash to verify against |
-| Not in manifest | File present in archive but not recognised |
+| Not in manifest | File present in archive but not recognised by any `.info` file |
 
 ### Step 13 — Cleanup
 
 All Y/N choices are collected first. No files are deleted until every question has been answered. Items are executed in this order:
 
 1. `retroarch/` staging folder *(safety check: refuses to delete if the path resolves to your live RetroARCH config directory)*
-2. `ra_bios_set.zip` *(if keeping, and hash failures were detected, you will be offered a scrub option to remove only the failed files from the archive)*
+2. `ra_bios_set.zip` *(if keeping, two optional scrub prompts are offered)*
+   - **Failed hash files** — appears if any files failed hash checks. Removes files whose MD5 did not match the expected value
+   - **Unverified files** — appears if any files were copied without hash verification. Advanced option for users who want the zip to contain only fully verified files. Most users should skip this
 3. Downloaded files
 4. `combined_manifest.json` *(always last — the scrub above depends on it)*
 
@@ -238,9 +246,9 @@ All Y/N choices are collected first. No files are deleted until every question h
 
 - Files are matched by **filename** in Step 7 and verified by **MD5 hash** in Step 9. Both checks must pass for a file to be placed into the `retroarch/` folder structure.
 
-- Not all `.info` files include MD5 hashes in their `notes` field. A file with no expected MD5 will appear as `Missing from RetroARCH .info files` in the CSV report and will be listed under a separate skip category in Step 9. It cannot be verified or copied regardless of whether it is present in the archive.
+- Not all `.info` files include MD5 hashes in their `notes` field. A file with no expected MD5 will appear as `Missing from RetroARCH .info files` in the CSV report and will be listed under the "Copied (unverified)" category in Step 9. It is copied to staging by default since the filename matched a manifest entry RetroARCH declared it wants. If RetroARCH later adds an expected MD5 for the file, re-running the tool will verify it automatically on the next run.
 
-- Some cores (e.g. ScummVM) list many theme or asset files as firmware entries. These will appear in the manifest and report, but typically have no MD5 hashes. They will be matched by filename if found in a scanned directory.
+- Some cores (e.g. ScummVM) list many theme or asset files as firmware entries. These will appear in the manifest and report, but typically have no MD5 hashes. They will be matched by filename if found in a scanned directory and copied to staging as unverified files.
 
 - Each time Step 8 runs it clears all previously recorded MD5 results before scanning. This ensures that if a file is removed from `ra_bios_set.zip` between runs, it will not continue to show as present in the report or affect Step 9.
 
